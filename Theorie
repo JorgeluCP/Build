@@ -1,0 +1,1381 @@
+
+                                  De quoi est composé le build lifecycle ?
+                                  ========================================
+
+Afin d'automatiser la construction d'un projet, Maven s'appuie sur des cycles de vie de construction appelés
+build lifecycle dans le jargon de Maven.
+
+Il y a 3 build lifecycles de base dans Maven :
+
+       * default : qui permet de construire et déployer le projet
+
+       * clean : qui permet de nettoyer le projet en supprimant les éléments issus de la construction de celui-ci
+
+       * site : qui permet de créer un site web pour le projet
+
+Ces build lifecycles sont découpés en phases qui sont exécutées séquentiellement les unes à la suite des autres.
+
+Si je prends l'exemple du build lifecycle default, nous y retrouvons, entre autres, les phases :
+
+       * validate : vérifie que la configuration projet est correcte (POM, pas d'éléments manquants...)
+
+       * compile : compile les sources du projet
+
+       * test : teste le code compilé avec les classes de tests unitaires contenues dans le projet
+
+       * package : package les éléments issus de la compilation dans un format distribuable (JAR, WAR...)
+
+       * install : installe le package dans votre repository local
+
+       * deploy : envoie le package dans le repository distant défini dans le POM
+
+Ainsi, la construction du projet (le build lifecycle) est un enchaînement d'étapes (les phases) permettant d'obtenir
+le résultat final.
+
+Lancer un build lifecycle
+=========================
+
+Quand vous lancez une construction Maven en ligne de commande, vous précisez simplement une phase d'un des build
+lifecycles et Maven se charge d'exécuter, dans l'ordre, toutes les phases qui composent le build lifecycle jusqu'à
+la phase indiquée.
+
+Vous vous rappelez de la commande mvn package? Eh bien dans cette commande, vous indiquiez la phase package du build
+lifecycledefault. Maven avait alors exécuté les phases validate, compile, test et enfin package.
+
+Pour les projets multi-modules, quand vous lancez la commande mvn sur le projet parent, Maven lance le build lifecycle
+dans chaque sous-projet (module), les uns à la suite des autres, en respectant l'ordre des dépendances inter-modules.
+
+Il vous est aussi possible de chaîner l'exécution de plusieurs build lifecycles dans une seule commande Maven.
+Si vous lancez mvn clean package par exemple, Maven va :
+
+        1) dans un premier temps, nettoyer le projet en exécutant le build lifecycle clean ;
+
+        2) puis, il va lancer le build lifecycle default jusqu'à la phase package.
+
+Les goals
+=========
+
+Nous avons vu qu'un build lifecycle est constitué d'une série de phases. Mais la granularité de l'exécution de Maven
+est encore plus fine. En effet, les phases sont découpées en tâches. Chaque tâche est assurée par un plugin Maven.
+Dans le jargon de Maven, ces tâches s'appellent des goals.
+
+Par exemple, la phase test est réalisée par défaut par le goal surefire:test, c'est-à-dire le goal test du plugin
+surefire.
+
+Maven fournit de base un certain nombre de plugins. Rappelez-vous, nous en avions déjà vu un dans la partie précédente
+quand nous avions ajouté la désignation de la classe Main dans le manifest du fichier JAR à générer :
+
+                     <project>
+                         ...
+                         <!-- =============================================================== -->
+                         <!-- Build -->
+                         <!-- =============================================================== -->
+                         <build>
+                             <!-- Gestion des plugins (version) -->
+                             <pluginManagement>
+                                 <plugins>
+                                     <!-- Plugin responsable de la génération du fichier JAR -->
+                                     <plugin>
+                                         <groupId>org.apache.maven.plugins</groupId>
+                                         <artifactId>maven-jar-plugin</artifactId>
+                                         <version>3.0.2</version>
+                                     </plugin>
+                                 </plugins>
+                             </pluginManagement>
+                             <plugins>
+                                 <plugin>
+                                     <groupId>org.apache.maven.plugins</groupId>
+                                     <artifactId>maven-jar-plugin</artifactId>
+                                     <configuration>
+                                         <archive>
+                                             <!-- Création du Manifest pour la définition de la classe Main -->
+                                             <manifest>
+                                                 <mainClass>org.exemple.demo.App</mainClass>
+                                             </manifest>
+                                         </archive>
+                                     </configuration>
+                                 </plugin>
+                             </plugins>
+                         </build>
+                         ...
+                     </project>
+
+
+Résumons
+========
+
+Afin de construire un projet, Maven s'appuie sur des build lifecycles. Ces build lifecycles sont un enchaînement
+de différentes étapes : les phases. Les phases sont découpées en tâches, appelées goals, et réalisées par des plugins
+Maven.
+
+Si vous souhaitez approfondir le sujet, voici quelques liens vers la documentation :
+
+          * Introduction to the Build Lifecycle
+          * Lifecycles Reference
+
+Dans le chapitre suivant, je vais vous présenter les principaux plugins Maven et vous montrer comment personnaliser
+la construction de votre projet en les câblant aux différentes phases des build lifecycles.
+
+
+Setting Up Your Project to Use the Build Lifecycle
+==================================================
+
+The build lifecycle is simple enough to use, but when you are constructing a Maven build for a project, how do you go
+about assigning tasks to each of those build phases?
+
+Packaging
+=========
+
+The first, and most common way, is to set the packaging for your project via the equally named POM element <packaging>.
+Some of the valid packaging values are jar, war, ear and pom. If no packaging value has been specified, it will default to jar.
+
+Each packaging contains a list of goals to bind to a particular phase. For example, the jar packaging will bind the
+following goals to build phases of the default lifecycle.
+
+
+            Phase	                                       plugin:goal
+            -------------------------------------------------------------------------------------------
+            process-resources	                           resources:resources
+            -------------------------------------------------------------------------------------------
+            compile	                                       compiler:compile
+            -------------------------------------------------------------------------------------------
+            process-test-resources	                       resources:testResources
+            -------------------------------------------------------------------------------------------
+            test-compile	                               compiler:testCompile
+            -------------------------------------------------------------------------------------------
+            test	                                       surefire:test
+            -------------------------------------------------------------------------------------------
+            package	                                       jar:jar
+            -------------------------------------------------------------------------------------------
+            install	                                       install:install
+            -------------------------------------------------------------------------------------------
+            deploy	                                       deploy:deploy
+
+
+This is an almost standard set of bindings; however, some packagings handle them differently. For example, a project
+that is purely metadata (packaging value is pom) only binds goals to the install and deploy phases (for a complete list
+of goal-to-build-phase bindings of some of the packaging types, refer to the Lifecycle Reference).
+
+Note that for some packaging types to be available, you may also need to include a particular plugin in the <build>
+section of your POM and specify <extensions>true</extensions> for that plugin. One example of a plugin that requires
+this is the Plexus plugin, which provides a plexus-application and plexus-service packaging.
+
+                                                 Plugins
+                                                 =======
+
+The second way to add goals to phases is to configure plugins in your project. Plugins are artifacts that provide goals
+to Maven. Furthermore, a plugin may have one or more goals wherein each goal represents a capability of that plugin.
+For example, the Compiler plugin has two goals: compile and testCompile. The former compiles the source code of your
+main code, while the latter compiles the source code of your test code.
+
+As you will see in the later sections, plugins can contain information that indicates which lifecycle phase to bind a
+goal to. Note that adding the plugin on its own is not enough information - you must also specify the goals you want to
+run as part of your build.
+
+The goals that are configured will be added to the goals already bound to the lifecycle from the packaging selected.
+If more than one goal is bound to a particular phase, the order used is that those from the packaging are executed first,
+followed by those configured in the POM. Note that you can use the <executions> element to gain more control over the
+order of particular goals.
+
+For example, the Modello plugin binds by default its goal modello:java to the generate-sources phase (Note: The
+modello:java goal generates Java source codes). So to use the Modello plugin and have it generate sources from a model
+and incorporate that into the build, you would add the following to your POM in the <plugins> section of <build>:
+
+                              ...
+                               <plugin>
+                                 <groupId>org.codehaus.modello</groupId>
+                                 <artifactId>modello-maven-plugin</artifactId>
+                                 <version>1.8.1</version>
+                                 <executions>
+                                   <execution>
+                                     <configuration>
+                                       <models>
+                                         <model>src/main/mdo/maven.mdo</model>
+                                       </models>
+                                       <version>4.0.0</version>
+                                     </configuration>
+                                     <goals>
+                                       <goal>java</goal>
+                                     </goals>
+                                   </execution>
+                                 </executions>
+                               </plugin>
+                              ...
+
+You might be wondering why that <executions> element is there. That is so that you can run the same goal multiple times
+with different configuration if needed. Separate executions can also be given an ID so that during inheritance or the
+application of profiles you can control whether goal configuration is merged or turned into an additional execution.
+
+When multiple executions are given that match a particular phase, they are executed in the order specified in the POM,
+with inherited executions running first.
+
+Now, in the case of modello:java, it only makes sense in the generate-sources phase. But some goals can be used in more
+than one phase, and there may not be a sensible default. For those, you can specify the phase yourself. For example,
+let's say you have a goal display:time that echos the current time to the commandline, and you want it to run in the
+process-test-resources phase to indicate when the tests were started. This would be configured like so:
+
+                                     ...
+                                      <plugin>
+                                        <groupId>com.mycompany.example</groupId>
+                                        <artifactId>display-maven-plugin</artifactId>
+                                        <version>1.0</version>
+                                        <executions>
+                                          <execution>
+                                            <phase>process-test-resources</phase>
+                                            <goals>
+                                              <goal>time</goal>
+                                            </goals>
+                                          </execution>
+                                        </executions>
+                                      </plugin>
+                                     ...
+
+Lifecycle Reference
+==================
+
+The following lists all build phases of the default, clean and site lifecycles, which are executed in the order given up to the point of the one specified.
+
+Clean Lifecycle
+===============
+
+Phase	                     Description
+------------------------------------------------------------------------------------------
+pre-clean	                 execute processes needed prior to the actual project cleaning
+------------------------------------------------------------------------------------------
+clean	                     remove all files generated by the previous build
+------------------------------------------------------------------------------------------
+post-clean	                 execute processes needed to finalize the project cleaning
+
+
+Default Lifecycle
+=================
+
+Phase	Description
+------------------------------------------------------------------------------------------
+validate	validate the project is correct and all necessary information is available.
+------------------------------------------------------------------------------------------
+initialize	initialize build state, e.g. set properties or create directories.
+------------------------------------------------------------------------------------------
+generate-sources	generate any source code for inclusion in compilation.
+------------------------------------------------------------------------------------------
+process-sources	process the source code, for example to filter any values.
+------------------------------------------------------------------------------------------
+generate-resources	generate resources for inclusion in the package.
+------------------------------------------------------------------------------------------
+process-resources	copy and process the resources into the destination directory, ready for packaging.
+------------------------------------------------------------------------------------------
+compile	compile the source code of the project.
+------------------------------------------------------------------------------------------
+process-classes	post-process the generated files from compilation, for example to do bytecode enhancement on Java classes.
+------------------------------------------------------------------------------------------
+generate-test-sources	generate any test source code for inclusion in compilation.
+------------------------------------------------------------------------------------------
+process-test-sources	process the test source code, for example to filter any values.
+------------------------------------------------------------------------------------------
+generate-test-resources	create resources for testing.
+------------------------------------------------------------------------------------------
+process-test-resources	copy and process the resources into the test destination directory.
+------------------------------------------------------------------------------------------
+test-compile	compile the test source code into the test destination directory
+------------------------------------------------------------------------------------------
+process-test-classes	post-process the generated files from test compilation, for example to do bytecode enhancement on Java classes.
+------------------------------------------------------------------------------------------
+test	run tests using a suitable unit testing framework. These tests should not require the code be packaged or deployed.
+------------------------------------------------------------------------------------------
+prepare-package	perform any operations necessary to prepare a package before the actual packaging. This often results in an unpacked, processed version of the package.
+------------------------------------------------------------------------------------------
+package	take the compiled code and package it in its distributable format, such as a JAR.
+------------------------------------------------------------------------------------------
+pre-integration-test	perform actions required before integration tests are executed. This may involve things such as setting up the required environment.
+------------------------------------------------------------------------------------------
+integration-test	process and deploy the package if necessary into an environment where integration tests can be run.
+------------------------------------------------------------------------------------------
+post-integration-test	perform actions required after integration tests have been executed. This may including cleaning up the environment.
+------------------------------------------------------------------------------------------
+verify	run any checks to verify the package is valid and meets quality criteria.
+------------------------------------------------------------------------------------------
+install	install the package into the local repository, for use as a dependency in other projects locally.
+------------------------------------------------------------------------------------------
+deploy	done in an integration or release environment, copies the final package to the remote repository for sharing with other developers and projects.
+
+
+Site Lifecycle
+=============
+
+Phase	    Description
+------------------------------------------------------------------------------------------
+pre-site	execute processes needed prior to the actual project site generation
+------------------------------------------------------------------------------------------
+site	    generate the project's site documentation
+------------------------------------------------------------------------------------------
+post-site	execute processes needed to finalize the site generation, and to prepare for site deployment
+------------------------------------------------------------------------------------------
+site-deploy	deploy the generated site documentation to the specified web server
+
+
+
+Built-in Lifecycle Bindings
+===========================
+
+Some phases have goals bound to them by default. And for the default lifecycle, these bindings depend on the packaging value.
+Here are some of the goal-to-build-phase bindings.
+
+Clean Lifecycle Bindings
+========================
+
+Phase	   plugin:goal
+----------------------
+clean	   clean:clean
+
+
+Default Lifecycle Bindings - Packaging ejb / ejb3 / jar / par / rar / war
+=========================================================================
+
+
+Phase	                    plugin:goal
+------------------------------------------------------------------------------------------
+process-resources	        resources:resources
+------------------------------------------------------------------------------------------
+compile	                    compiler:compile
+------------------------------------------------------------------------------------------
+process-test-resources	    resources:testResources
+------------------------------------------------------------------------------------------
+test-compile	            compiler:testCompile
+------------------------------------------------------------------------------------------
+test	                    surefire:test
+------------------------------------------------------------------------------------------
+package	                    ejb:ejb or ejb3:ejb3 or jar:jar or par:par or rar:rar or war:war
+------------------------------------------------------------------------------------------
+install	                    install:install
+------------------------------------------------------------------------------------------
+deploy	                    deploy:deploy
+
+
+Default Lifecycle Bindings - Packaging ear
+==========================================
+
+Phase	                       plugin:goal
+------------------------------------------------------------------------------------------
+generate-resources	           ear:generate-application-xml
+------------------------------------------------------------------------------------------
+process-resources	           resources:resources
+------------------------------------------------------------------------------------------
+package	                       ear:ear
+------------------------------------------------------------------------------------------
+install	                       install:install
+------------------------------------------------------------------------------------------
+deploy	                       deploy:deploy
+
+
+Default Lifecycle Bindings - Packaging maven-plugin
+===================================================
+
+Phase	                      plugin:goal
+------------------------------------------------------------------------------------------
+generate-resources	          plugin:descriptor
+------------------------------------------------------------------------------------------
+process-resources	          resources:resources
+------------------------------------------------------------------------------------------
+compile	                      compiler:compile
+------------------------------------------------------------------------------------------
+process-test-resources	      resources:testResources
+------------------------------------------------------------------------------------------
+test-compile	              compiler:testCompile
+------------------------------------------------------------------------------------------
+test	                      surefire:test
+------------------------------------------------------------------------------------------
+package                     	jar:jar and plugin:addPluginArtifactMetadata
+------------------------------------------------------------------------------------------
+install	                     install:install
+-----------------------------------------------------------------------------------------
+deploy	                      deploy:deploy
+
+
+Default Lifecycle Bindings - Packaging pom
+==========================================
+
+Phase	                        plugin:goal
+-----------------------------------------------------------------------------------------
+package
+-----------------------------------------------------------------------------------------
+install                     	install:install
+-----------------------------------------------------------------------------------------
+deploy	                         deploy:deploy
+
+Site Lifecycle Bindings
+=======================
+
+Phase	                       plugin:goal
+-----------------------------------------------------------------------------------------
+site	                       site:site
+-----------------------------------------------------------------------------------------
+site-deploy	                   site:deploy
+
+References
+===========
+
+The full Maven lifecycle is defined by the components.xml file in the maven-core module, with associated documentation for reference.
+
+Default lifecycle bindings are defined in a separate default-bindings.xml descriptor.
+
+See Lifecycles Reference and Plugin Bindings for default Lifecycle Reference for latest documentation taken directly from source code.
+
+[top].
+
+========================================================================================================================
+                              Personnalisez la construction avec les plugins
+========================================================================================================================
+
+Maintenant que vous avez une meilleure vision du processus d'exécution d'un build Maven, nous allons pouvoir personnaliser
+la construction de votre projet grâce aux plugins maven.
+
+Le but est d'adapter et d'enrichir le POM afin de coller le plus possible à votre besoin et ainsi d'automatiser au maximum
+la construction et la génération des livrables de votre projet.
+
+Je ne vais pas ici vous faire une présentation exhaustive des différents plugins disponibles dans Maven. Je vais vous en
+montrer quelques-uns et vous donner les éléments pour pouvoir chercher, par vous-même, comment réaliser ce que vous voulez
+faire.
+
+Les plugins déjà câblés aux phases
+==================================
+==================================
+
+Rappelez-vous : les phases d'un build lifecycle sont découpées en tâches réalisées par les goals de différents plugins :
+http://maven.apache.org/ref/3.5.0/maven-core/lifecycles.html.
+
+
+                 default Lifecycle
+                 default lifecycle is defined without any associated plugin. Plugin bindings for this lifecycle are
+                 defined separately for every packaging:
+
+                 <phases>
+                   <phase>validate</phase>
+                   <phase>initialize</phase>
+                   <phase>generate-sources</phase>
+                   <phase>process-sources</phase>
+                   <phase>generate-resources</phase>
+                   <phase>process-resources</phase>
+                   <phase>compile</phase>
+                   <phase>process-classes</phase>
+                   <phase>generate-test-sources</phase>
+                   <phase>process-test-sources</phase>
+                   <phase>generate-test-resources</phase>
+                   <phase>process-test-resources</phase>
+                   <phase>test-compile</phase>
+                   <phase>process-test-classes</phase>
+                   <phase>test</phase>
+                   <phase>prepare-package</phase>
+                   <phase>package</phase>
+                   <phase>pre-integration-test</phase>
+                   <phase>integration-test</phase>
+                   <phase>post-integration-test</phase>
+                   <phase>verify</phase>
+                   <phase>install</phase>
+                   <phase>deploy</phase>
+                 </phases>
+
+clean Lifecycle
+clean lifecycle is defined directly with its plugin bindings.
+
+                        <phases>
+                          <phase>pre-clean</phase>
+                          <phase>clean</phase>
+                          <phase>post-clean</phase>
+                        </phases>
+                        <default-phases>
+                          <clean>
+                            org.apache.maven.plugins:maven-clean-plugin:2.5:clean
+                          </clean>
+                        </default-phases>
+
+site Lifecycle
+site lifecycle is defined directly with its plugin bindings.
+
+                        <phases>
+                          <phase>pre-site</phase>
+                          <phase>site</phase>
+                          <phase>post-site</phase>
+                          <phase>site-deploy</phase>
+                        </phases>
+                        <default-phases>
+                          <site>
+                            org.apache.maven.plugins:maven-site-plugin:3.3:site
+                          </site>
+                          <site-deploy>
+                            org.apache.maven.plugins:maven-site-plugin:3.3:deploy
+                          </site-deploy>
+                        </default-phases>
+========================================================================================================================
+========================================================================================================================
+Suivant le build lifecycle et le packaging utilisés, différents goals sont câblés par défaut aux différentes phases :
+http://maven.apache.org/ref/3.5.0/maven-core/default-bindings.html.
+========================================================================================================================
+
+Plugin Bindings for default Lifecycle Reference
+===============================================
+
+The default lifecycle is defined without any plugin binding; plugin bindings are defined separately in
+META-INF/plexus/default-bindings.xml because they are specific for each packaging:
+
+Plugin bindings for pom packaging
+Plugin bindings for jar packaging
+Plugin bindings for ejb packaging
+Plugin bindings for maven-plugin packaging
+Plugin bindings for war packaging
+Plugin bindings for ear packaging
+Plugin bindings for rar packaging
+
+
+Plugin bindings for pom packaging
+=========================================
+
+                     <phases>
+                       <install>
+                         org.apache.maven.plugins:maven-install-plugin:2.4:install
+                       </install>
+                       <deploy>
+                         org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy
+                       </deploy>
+                     </phases>
+
+Plugin bindings for jar packaging
+=========================================
+
+                  <phases>
+                    <process-resources>
+                      org.apache.maven.plugins:maven-resources-plugin:2.6:resources
+                    </process-resources>
+                    <compile>
+                      org.apache.maven.plugins:maven-compiler-plugin:3.1:compile
+                    </compile>
+                    <process-test-resources>
+                      org.apache.maven.plugins:maven-resources-plugin:2.6:testResources
+                    </process-test-resources>
+                    <test-compile>
+                      org.apache.maven.plugins:maven-compiler-plugin:3.1:testCompile
+                    </test-compile>
+                    <test>
+                      org.apache.maven.plugins:maven-surefire-plugin:2.12.4:test
+                    </test>
+                    <package>
+                      org.apache.maven.plugins:maven-jar-plugin:2.4:jar
+                    </package>
+                    <install>
+                      org.apache.maven.plugins:maven-install-plugin:2.4:install
+                    </install>
+                    <deploy>
+                      org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy
+                    </deploy>
+                  </phases>
+
+
+Plugin bindings for ejb packaging
+=========================================
+
+                <phases>
+                  <process-resources>
+                    org.apache.maven.plugins:maven-resources-plugin:2.6:resources
+                  </process-resources>
+                  <compile>
+                    org.apache.maven.plugins:maven-compiler-plugin:3.1:compile
+                  </compile>
+                  <process-test-resources>
+                    org.apache.maven.plugins:maven-resources-plugin:2.6:testResources
+                  </process-test-resources>
+                  <test-compile>
+                    org.apache.maven.plugins:maven-compiler-plugin:3.1:testCompile
+                  </test-compile>
+                  <test>
+                    org.apache.maven.plugins:maven-surefire-plugin:2.12.4:test
+                  </test>
+                  <package>
+                    org.apache.maven.plugins:maven-ejb-plugin:2.3:ejb
+                  </package>
+                  <install>
+                    org.apache.maven.plugins:maven-install-plugin:2.4:install
+                  </install>
+                  <deploy>
+                    org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy
+                  </deploy>
+                </phases>
+
+
+Plugin bindings for maven-plugin packaging
+=========================================
+
+                      <phases>
+                        <process-resources>
+                          org.apache.maven.plugins:maven-resources-plugin:2.6:resources
+                        </process-resources>
+                        <compile>
+                          org.apache.maven.plugins:maven-compiler-plugin:3.1:compile
+                        </compile>
+                        <process-classes>
+                          org.apache.maven.plugins:maven-plugin-plugin:3.2:descriptor
+                        </process-classes>
+                        <process-test-resources>
+                          org.apache.maven.plugins:maven-resources-plugin:2.6:testResources
+                        </process-test-resources>
+                        <test-compile>
+                          org.apache.maven.plugins:maven-compiler-plugin:3.1:testCompile
+                        </test-compile>
+                        <test>
+                          org.apache.maven.plugins:maven-surefire-plugin:2.12.4:test
+                        </test>
+                        <package>
+                          org.apache.maven.plugins:maven-jar-plugin:2.4:jar,
+                          org.apache.maven.plugins:maven-plugin-plugin:3.2:addPluginArtifactMetadata
+                        </package>
+                        <install>
+                          org.apache.maven.plugins:maven-install-plugin:2.4:install
+                        </install>
+                        <deploy>
+                          org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy
+                        </deploy>
+                      </phases>
+
+Plugin bindings for war packaging
+=========================================
+
+                          <phases>
+                            <process-resources>
+                              org.apache.maven.plugins:maven-resources-plugin:2.6:resources
+                            </process-resources>
+                            <compile>
+                              org.apache.maven.plugins:maven-compiler-plugin:3.1:compile
+                            </compile>
+                            <process-test-resources>
+                              org.apache.maven.plugins:maven-resources-plugin:2.6:testResources
+                            </process-test-resources>
+                            <test-compile>
+                              org.apache.maven.plugins:maven-compiler-plugin:3.1:testCompile
+                            </test-compile>
+                            <test>
+                              org.apache.maven.plugins:maven-surefire-plugin:2.12.4:test
+                            </test>
+                            <package>
+                              org.apache.maven.plugins:maven-war-plugin:2.2:war
+                            </package>
+                            <install>
+                              org.apache.maven.plugins:maven-install-plugin:2.4:install
+                            </install>
+                            <deploy>
+                              org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy
+                            </deploy>
+                          </phases>
+
+Plugin bindings for ear packaging
+=========================================
+
+                           <phases>
+                             <generate-resources>
+                               org.apache.maven.plugins:maven-ear-plugin:2.8:generate-application-xml
+                             </generate-resources>
+                             <process-resources>
+                               org.apache.maven.plugins:maven-resources-plugin:2.6:resources
+                             </process-resources>
+                             <package>
+                               org.apache.maven.plugins:maven-ear-plugin:2.8:ear
+                             </package>
+                             <install>
+                               org.apache.maven.plugins:maven-install-plugin:2.4:install
+                             </install>
+                             <deploy>
+                               org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy
+                             </deploy>
+                           </phases>
+
+Plugin bindings for rar packaging
+=========================================
+
+                           <phases>
+                             <process-resources>
+                               org.apache.maven.plugins:maven-resources-plugin:2.6:resources
+                             </process-resources>
+                             <compile>
+                               org.apache.maven.plugins:maven-compiler-plugin:3.1:compile
+                             </compile>
+                             <process-test-resources>
+                               org.apache.maven.plugins:maven-resources-plugin:2.6:testResources
+                             </process-test-resources>
+                             <test-compile>
+                               org.apache.maven.plugins:maven-compiler-plugin:3.1:testCompile
+                             </test-compile>
+                             <test>
+                               org.apache.maven.plugins:maven-surefire-plugin:2.12.4:test
+                             </test>
+                             <package>
+                               org.apache.maven.plugins:maven-rar-plugin:2.2:rar
+                             </package>
+                             <install>
+                               org.apache.maven.plugins:maven-install-plugin:2.4:install
+                             </install>
+                             <deploy>
+                               org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy
+                             </deploy>
+                           </phases>
+
+========================================================================================================================
+Pour le packaging JAR, voici le câblage par défaut (pour la version 3.5.0 de Maven) :
+
+                  <phases>
+                    <process-resources>
+                      org.apache.maven.plugins:maven-resources-plugin:2.6:resources
+                    </process-resources>
+                    <compile>
+                      org.apache.maven.plugins:maven-compiler-plugin:3.1:compile
+                    </compile>
+                    <process-test-resources>
+                      org.apache.maven.plugins:maven-resources-plugin:2.6:testResources
+                    </process-test-resources>
+                    <test-compile>
+                      org.apache.maven.plugins:maven-compiler-plugin:3.1:testCompile
+                    </test-compile>
+                    <test>
+                      org.apache.maven.plugins:maven-surefire-plugin:2.12.4:test
+                    </test>
+                    <package>
+                      org.apache.maven.plugins:maven-jar-plugin:2.4:jar
+                    </package>
+                    <install>
+                      org.apache.maven.plugins:maven-install-plugin:2.4:install
+                    </install>
+                    <deploy>
+                      org.apache.maven.plugins:maven-deploy-plugin:2.7:deploy
+                    </deploy>
+                  </phases>
+
+========================================================================================================================
+                                     Affiner la configuration de la compilation
+========================================================================================================================
+
+J'aimerais que lors de la compilation, Maven m'affiche les utilisations de méthodes dépréciées (@Deprecated) ainsi que
+les avertissements de compilation (warnings).
+
+Je remarque dans la documentation que la phase compile est assurée par le goal compile du plugin org.apache.maven.plugins:maven-compiler-plugin :
+
+                          <phases>
+                              ...
+                              <compile>
+                                  org.apache.maven.plugins:maven-compiler-plugin:3.1:compile
+                              </compile>
+                              ...
+                          </phases>
+
+Je vais dans la documentation des plugins : https://maven.apache.org/plugins/index.html.
+
+Available Plugins
+Maven is - at its heart - a plugin execution framework; all work is done by plugins. Looking for a specific goal to execute?
+This page lists the core plugins and others. There are the build and the reporting plugins:
+
+* Build plugins will be executed during the build and they should be configured in the <build/> element from the POM.
+* Reporting plugins will be executed during the site generation and they should be configured in the <reporting/> element
+  from the POM. Because the result of a Reporting plugin is part of the generated site, Reporting plugins should be both
+  internationalized and localized. You can read more about the localization of our plugins and how you can help.
+
+Et plus précisément dans la documentation du goal compile du plugin maven-compiler-plugin : https://maven.apache.org/plugins/maven-compiler-plugin/compile-mojo.html.
+
+J'obtiens ainsi une description du goal et la liste des options de configuration qui lui sont applicables.
+
+Deux options retiennent mon attention :
+
+Name                          Type                     Description
+------------------------------------------------------------------------------------------------------------------------
+showDeprecation               boolean                  Sets whether to show source locations where deprecated APIs are used.
+                                                       Default value is:false.
+                                                       User property is:maven.compiler.showDeprecation.
+------------------------------------------------------------------------------------------------------------------------
+showWarnings                  boolean                  Set to true to show compilation warnings.
+                                                       Default value is:false.
+                                                       User property is:maven.compiler.showWarnings.
+
+Par défaut, ces deux options sont à false. Pour les activer, il y a deux solutions :
+
+soit en ajoutant une section <configuration> dans la définition du plugin dans le POM :
+
+                <project>
+                    ...
+                    <!-- =============================================================== -->
+                    <!-- Build -->
+                    <!-- =============================================================== -->
+                    <build>
+                        <plugins>
+                            <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-compiler-plugin</artifactId>
+                                <version>3.1</version>
+                                <configuration>
+                                    <showDeprecation>true</showDeprecation>
+                                    <showWarnings>true</showWarnings>
+                                </configuration>
+                            </plugin>
+                        </plugins>
+                    </build>
+                    ...
+                </project>
+
+soit en utilisant les propriétés données par les lignes « User property is: ... » :
+
+               <project>
+                   ...
+                   <!-- =============================================================== -->
+                   <!-- Propriétés -->
+                   <!-- =============================================================== -->
+                   <properties>
+                       <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
+                       <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
+                   </properties>
+                   ...
+               </project>
+
+========================================================================================================================
+                                    Définir la classe Main du JAR
+========================================================================================================================
+
+Dans la première partie nous avions déjà vu comment définir la classe Main dans le manifest du JAR généré par Maven.
+
+Si je reprends le même principe que dans la section précédente, voici comment j'en suis arrivé à cette configuration.
+
+ 1) Dans la documentation, la phase package est assurée par le goal jar du plugin org.apache.maven.plugins:maven-jar-plugin :
+
+                               <phases>
+                                   ...
+                                   <package>
+                                       org.apache.maven.plugins:maven-jar-plugin:2.4:jar
+                                   </package>
+                                   ...
+                               </phases>
+
+2) Je vais dans la documentation du goal jar du plugin maven-jar-plugin :
+
+      https://maven.apache.org/plugins/maven-jar-plugin/jar-mojo.html.
+
+jar:jar
+Full name:
+
+org.apache.maven.plugins:maven-jar-plugin:3.2.0:jar
+
+Description:
+
+Build a JAR from the current project.
+
+Attributes:
+
+  * Requires a Maven project to be executed.
+  * Requires dependency resolution of artifacts in scope: runtime.
+  * Binds by default to the lifecycle phase: package.
+
+Required Parameters
+===================
+Name                    	Type            	 Since	               Description
+<classesDirectory>	        File	               -	               Directory containing the classes and resource files that should be packaged into the JAR.
+                                                                       Default value is: ${project.build.outputDirectory}.
+
+<outputDirectory>	        File	               -	               Directory containing the generated JAR.
+                                                                       Default value is: ${project.build.directory}.
+
+Optional Parameters
+====================
+
+Name	                    Type	                    Since	       Description
+
+<archive>	                MavenArchiveConfiguration	  -	           The archive configuration to use. See Maven Archiver Reference.
+
+<classifier>	            String	                      -	           Classifier to add to the artifact generated.
+                                                                       If given, the artifact will be attached as a supplemental artifact.
+                                                                       If not given this will create the main artifact which is the default behavior.
+                                                                       If you try to do that a second time without using a classifier the build will
+                                                                       fail.
+
+<excludes>	                String[]	                  -	           List of files to exclude. Specified as fileset patterns
+                                                                       which are relative to the input directory whose contents
+                                                                       is being packaged into the JAR.
+
+<forceCreation>	            boolean	                      -	            Require the jar plugin to build a new JAR even if none of
+                                                                        the contents appear to have changed. By default, this plugin
+                                                                        looks to see if the output jar exists and inputs have not changed.
+                                                                        If these conditions are true, the plugin skips creation of the jar.
+                                                                        This does not work when other plugins, like the maven-shade-plugin,
+                                                                        are configured to post-process the jar. This plugin can not detect the
+                                                                        post-processing, and so leaves the post-processed jar in place. This can
+                                                                        lead to failures when those plugins do not expect to find their own output
+                                                                        as an input. Set this parameter to true to avoid these problems by forcing
+                                                                        this plugin to recreate the jar every time.
+                                                                        Starting with 3.0.0 the property has been renamed from jar.forceCreation
+                                                                        to maven.jar.forceCreation.
+
+                                                                        Default value is: false.
+                                                                        User property is: maven.jar.forceCreation.
+
+<includes>	               String[]	                       -	        List of files to include. Specified as fileset patterns which are relative
+                                                                        to the input directory whose contents is being packaged into the JAR.
+
+<outputTimestamp>	       String	                     3.2.0	        Timestamp for reproducible output archive entries, either formatted as
+                                                                        ISO 8601 yyyy-MM-dd'T'HH:mm:ssXXX or as an int representing seconds since
+                                                                        the epoch (like SOURCE_DATE_EPOCH).
+                                                                        Default value is: ${project.build.outputTimestamp}.
+
+<skipIfEmpty>	           boolean	                       -	        Skip creating empty archives.
+                                                                        Default value is: false.
+
+<useDefaultManifestFile>   boolean	                       -	        Deprecated. For version 3.0.0 this parameter is only defined here to break
+                                                                        the build if you use it!
+                                                                        Default value is: false.
+                                                                        User property is: jar.useDefaultManifestFile.
+
+3) Je repère l'option archive qui me renvoie à la documentation de Maven Archiver où j'obtiens les éléments de configuration
+   du manifest : http://maven.apache.org/shared/maven-archiver/index.html#class_manifest.
+
+Apache Maven Archiver
+
+The Maven Archiver is mainly used by plugins to handle packaging. The version numbers referenced in the Since column
+on this page are the version of the Maven Archiver component - not for any specific plugin. To see which version of
+Maven Archiver a plugin uses, go to the site for that plugin.
+
+                                      <archive>
+                                        <addMavenDescriptor/>
+                                        <compress/>
+                                        <forced/>
+                                        <index/>
+                                        <pomPropertiesFile/>
+
+                                        <manifestFile/>
+                                        <manifest>
+                                          <addClasspath/>
+                                          <addDefaultEntries/>
+                                          <addDefaultImplementationEntries/>
+                                          <addDefaultSpecificationEntries/>
+                                          <addBuildEnvironmentEntries/>
+                                          <addExtensions/>
+                                          <classpathLayoutType/>
+                                          <classpathPrefix/>
+                                          <customClasspathLayout/>
+                                          <mainClass/>
+                                          <packageName/>
+                                          <useUniqueVersions/>
+                                        </manifest>
+                                        <manifestEntries>
+                                          <key>value</key>
+                                        </manifestEntries>
+                                        <manifestSections>
+                                          <manifestSection>
+                                            <name/>
+                                            <manifestEntries>
+                                              <key>value</key>
+                                            </manifestEntries>
+                                          <manifestSection/>
+                                        </manifestSections>
+                                      </archive>
+
+
+archive
+=======
+
+Element                                	Description	                                                     Type	                    Since
+
+addMavenDescriptor	                    Whether the created archive
+                                        will contain these two Maven
+                                        files:
+
+                                        * The pom file, located in the
+                                          archive in META-INF/maven/${groupId}/${artifactId}/pom.xml
+
+                                        * A pom.properties file, located in the archive in
+                                          META-INF/maven/${groupId}/${artifactId}/pom.properties
+                                          The default value is true.	                                 boolean
+
+compress	                            Activate compression for the archive.
+                                        The default value is true.	                                     boolean
+
+forced	                                Whether recreating the archive is forced (default) or not.
+                                        Setting this option to false, means that the archiver should
+                                        compare the timestamps of included files with the timestamp
+                                        of the target archive and rebuild the archive, only if the latter
+                                        timestamp precedes the former timestamps. Checking for timestamps
+                                        will typically offer a performance gain (in particular, if the
+                                        following steps in a build can be suppressed, if an archive isn't
+                                        recreated) on the cost that you get inaccurate results from time to
+                                        time. In particular, removal of source files won't be detected.
+                                        An archiver doesn't necessarily support checks for uptodate.
+                                        If so, setting this option to true will simply be ignored.
+
+                                        The default value is true.	                                     boolean	2.2
+
+index	                                Whether the created archive will contain an INDEX.LIST file.
+                                        The default value is false.	                                      boolean
+
+pomPropertiesFile	                   Use this to override the auto created pom.properties file
+                                       (only if addMavenDescriptor is set to true)	File	                         2.3
+
+manifestFile	                       With this you can supply your own manifest file.	                   File
+
+manifest
+
+manifestEntries	                       A list of key/value pairs to add to the manifest.	               Map
+
+manifestSections
+
+
+
+pom.properties content
+======================
+The auto created pom.properties file will contain the following content:
+
+     1) artifactId=${project.artifactId}
+     2) groupId=${project.groupId}
+     3) version=${project.version}
+
+
+manifest
+========
+
+Element	                           Description	                                              Type	               Since
+
+addClasspath	                  Whether to create a Class-Path manifest entry.
+                                  The default value is false.	                               boolean
+
+addDefaultEntries                 If the manifest will contain these entries:
+                                  1) Created-By: Maven Archiver ${maven-archiver.version}
+                                  2) Build-Jdk-Spec: ${java.specification.version}
+
+                                  Since 3.5.0, the default value of Created-By entry
+                                  can be overridden using MavenArchiver.setCreatedBy(...) API. boolean	         3.4.0
+                                  The default value is true.
+
+addDefaultImplementationEntries	  If the manifest will contain these entries:                  boolean           2.1 and 2.6
+                                  1) Implementation-Title: ${project.name}
+                                  2) Implementation-Version: ${project.version}
+                                  3) Implementation-Vendor: ${project.organization.name}
+                                  The default value is false.
+
+addBuildEnvironmentEntries        If the manifest will contain these entries:                 boolean	         3.4.0
+                                  1) Build-Tool: ${maven.build.version}
+                                  2) Build-Jdk: ${java.version} (${java.vendor})
+                                  3) Build-Os:  ${os.name} (${os.version}; (${os.arch})
+
+addExtensions                    Whether to create an Extension-List manifest entry.          boolean
+                                 The default value is false.
+
+classpathLayoutType               The type of layout to use when formatting entries in          String	           2.4
+                                  the created Class-Path. Valid values are: simple,
+                                  repository (the same as a Maven classpath layout) and
+                                  custom.
+                                  Note: If you specify a type of custom you must also set
+                                  customClasspathLayout. The default value is simple.
+
+classpathPrefix	                  A text that will be prefixed to all your Class-Path entries.
+                                  The default value is "".	                                    String
+
+customClasspathLayout	          The layout expression to use when the layout type set in
+                                  classpathLayoutType has the value custom. Expressions will
+                                  be evaluated against the following ordered list of
+                                  classpath-related objects:
+                                  1) The current Artifact instance, if one exists.
+                                  2) The current ArtifactHandler instance from the artifact above.
+                                  Note: If you specify a layout type of custom you must set this
+                                  layout expression.	                                        String	           2.4
+
+mainClass	                      The Main-Class manifest entry.	                            String
+
+packageName	P                     ackage manifest entry.	                                   String
+
+useUniqueVersions	              Whether to use unique timestamp Snapshot versions rather
+                                  than -SNAPSHOT versions. The default value is true.	        boolean	             2.4
+
+
+
+4) J'en déduis la configuration adéquate et je l'ajoute au POM :
+
+                  <project>
+                      ...
+                      <!-- =============================================================== -->
+                      <!-- Build -->
+                      <!-- =============================================================== -->
+                      <build>
+                          <plugins>
+                              <plugin>
+                                  <groupId>org.apache.maven.plugins</groupId>
+                                  <artifactId>maven-jar-plugin</artifactId>
+                                  <version>3.0.2</version>
+                                  <configuration>
+                                      <archive>
+                                          <manifest>
+                                              <mainClass>org.exemple.demo.App</mainClass>
+                                          </manifest>
+                                      </archive>
+                                  </configuration>
+                              </plugin>
+                          </plugins>
+                      </build>
+                      ...
+                  </project>
+
+
+========================================================================================================================
+                                       Gérer les plugins de manière globale
+========================================================================================================================
+
+Il est fortement recommandé de définir les versions des plugins utilisés.
+
+Comme pour les dépendances, il est possible de le faire de manière globale au projet via la section <pluginManagement>
+dans le POM parent. Vous pouvez ainsi fixer les versions des plugins mais aussi leur configuration de manière globale.
+
+Si je reprends les exemples précédents, voici ce que j'obtiens dans le POM parent :
+
+                    <project>
+                        ...
+                        <!-- =============================================================== -->
+                        <!-- Build -->
+                        <!-- =============================================================== -->
+                        <build>
+                            <!-- ===== Gestion des plugins ===== -->
+                            <pluginManagement>
+                                <plugins>
+                                    <plugin>
+                                        <groupId>org.apache.maven.plugins</groupId>
+                                        <artifactId>maven-compiler-plugin</artifactId>
+                                        <version>3.1</version>
+                                        <configuration>
+                                            <showDeprecation>true</showDeprecation>
+                                            <showWarnings>true</showWarnings>
+                                        </configuration>
+                                    </plugin>
+                                    <plugin>
+                                        <groupId>org.apache.maven.plugins</groupId>
+                                        <artifactId>maven-jar-plugin</artifactId>
+                                        <version>3.0.2</version>
+                                    </plugin>
+                                </plugins>
+                            </pluginManagement>
+                        </build>
+                        ...
+                    </project>
+
+
+Et dans mon module, il ne me reste plus que :
+
+                    <project>
+                        ...
+                        <!-- =============================================================== -->
+                        <!-- Build -->
+                        <!-- =============================================================== -->
+                        <build>
+                            <plugins>
+                                <plugin>
+                                    <groupId>org.apache.maven.plugins</groupId>
+                                    <artifactId>maven-jar-plugin</artifactId>
+                                    <configuration>
+                                        <archive>
+                                            <manifest>
+                                                <mainClass>org.exemple.demo.App</mainClass>
+                                            </manifest>
+                                        </archive>
+                                    </configuration>
+                                </plugin>
+                            </plugins>
+                        </build>
+                        ...
+                    </project>
+
+Je n'ai pas mis la configuration de la classe Main dans la section <pluginManagement> du POM parent pour la simple
+et bonne raison que tous les modules n'ont pas de classe Main (ou du moins pas la même !).
+
+========================================================================================================================
+                               Ajouter de nouveaux plugins dans les phases
+========================================================================================================================
+
+J'ai défini 3 profils permettant de spécifier l'environnement cible de ma construction (développement, test, production) :
+
+                     <project>
+                         ...
+                         <!-- =============================================================== -->
+                         <!-- Profils -->
+                         <!-- =============================================================== -->
+                         <profiles>
+                             <!-- Profil pour l'environnement de développement -->
+                             <profile>
+                                 <id>target-dev</id>
+                                 ...
+                             </profile>
+
+                             <!-- Profil pour l'environnement de test -->
+                             <profile>
+                                 <id>target-test</id>
+                                 ...
+                             </profile>
+
+                             <!-- Profil pour l'environnement de production -->
+                             <profile>
+                                 <id>target-prod</id>
+                                 ...
+                             </profile>
+                         </profiles>
+                         ...
+                     </project>
+
+Lors du build avec Maven, je veux m'assurer qu'au moins un des profils est activé. Je vais pour cela utiliser le
+goal enforce du plugin maven-enforcer-plugin :
+
+                                             https://maven.apache.org/enforcer/maven-enforcer-plugin/.
+
+
+Maven Enforcer Plugin - The Loving Iron Fist of Maven™
+------------------------------------------------------
+
+The Enforcer plugin provides goals to control certain environmental constraints such as Maven version, JDK version and
+OS family along with many more built-in rules and user created rules.
+
+Goals Overview
+--------------
+The Enforcer plugin has two goals:
+
+     * enforcer:enforce executes rules for each project in a multi-project build.
+     * enforcer:display-info display the current information as detected by the built-in rules.
+
+Using 3.0.0-M2+
+     The minimum needed JDK is now JDK7+.
+
+Usage
+     General instructions on how to use the Enforcer Plugin can be found on the usage page.
+
+     In case you still have questions regarding the plugin's usage, please have a look at the FAQ and feel free to
+     contact the user mailing list. The posts to the mailing list are archived and could already contain the answer
+     to your question as part of an older thread. Hence, it is also worth browsing/searching the mail archive.
+
+     If you feel like the plugin is missing a feature or has a defect, you can fill a feature request or bug report in
+     our issue tracker. When creating a new issue, please provide a comprehensive description of your concern. Especially
+     for fixing bugs it is crucial that the developers can reproduce your problem. For this reason, entire debug logs,
+     POMs or most preferably little demo projects attached to the issue are very much appreciated. Of course, patches
+     are welcome, too. Contributors can check out the project from our source repository and will find supplementary
+     information in the guide to helping with Maven.
+
+
+enforcer:enforce
+
+Full name:
+----------
+org.apache.maven.plugins:maven-enforcer-plugin:3.0.0-M3:enforce
+
+Description:
+-----------
+This goal executes the defined enforcer-rules once per module.
+Attributes:
+
+   * Requires a Maven project to be executed.
+   * Binds by default to the lifecycle phase: validate.
+
+Optional Parameters
+===================
+
+Name	                       Type	                    Since	                Description
+
+<commandLineRules>	           String[]	                   -	             Array of Strings that matches the EnforcerRules to execute.
+                                                                             User property is: rules.
+
+<fail>	                       boolean	                   -	             Flag to fail the build if a version check fails.
+                                                                             Default value is: true.
+                                                                             User property is: enforcer.fail.
+
+<failFast>	                   boolean	                   -	             Fail on the first rule that doesn't pass
+                                                                             Default value is: false.
+                                                                             User property is: enforcer.failFast.
+
+<ignoreCache>	               boolean	                   -	             Use this flag to disable rule result caching.
+                                                                             This will cause all rules to execute on each
+                                                                             project even if the rule indicates it can safely
+                                                                             be cached.
+                                                                             Default value is: false.
+                                                                             User property is: enforcer.ignoreCache.
+
+<rules>	                      EnforcerRule[]	           -	             Array of objects that implement the EnforcerRule
+                                                                             interface to execute.
+
+<skip>	                      boolean	                   -	             Flag to easily skip all checks
+                                                                             Default value is: false.
+                                                                             User property is: enforcer.skip.
+
+
+
+
+
+J'ajoute donc ce plugin. Il faut aussi que je câble son goal enforce à la phase validate du build lifecycle default.
+Cela se fait grâce à la section <executions> :
+
+                     <project>
+                         ...
+                         <build>
+                             <plugins>
+                                 <plugin>
+                                     <groupId>org.apache.maven.plugins</groupId>
+                                     <artifactId>maven-enforcer-plugin</artifactId>
+                                     <version>1.4.1</version>
+                                     <executions>
+                                         <execution>
+                                             <!-- je choisis un nom unique pour définir cette exécution -->
+                                             <id>enforce-profile-target</id>
+                                             <!-- je branche l'exécution à la phase "validate" -->
+                                             <phase>validate</phase>
+                                             <!-- cette exécution lancera le goal "enforce" -->
+                                             <goals>
+                                                 <goal>enforce</goal>
+                                             </goals>
+                                             <!-- La configuration du plugin propre à cette exécution -->
+                                             <configuration>
+                                                 <rules>
+                                                     <requireActiveProfile>
+                                                         <profiles>target-dev,target-test,target-prod</profiles>
+                                                         <all>false</all>
+                                                     </requireActiveProfile>
+                                                 </rules>
+                                             </configuration>
+                                         </execution>
+                                     </executions>
+                                 </plugin>
+                             </plugins>
+                         </build>
+                         ...
+                     </project>
+
+
+Si je lance maintenant mon build sans activer de profil target-... cela me renvoie une erreur :
+
+$ mvn package
+
+...
+[WARNING] Rule 0: org.apache.maven.plugins.enforcer.RequireActiveProfile failed with message:
+Il faut activer un des profils target
+Profile "target-dev" is not activated.
+Profile "target-test" is not activated.
+Profile "target-prod" is not activated.
+...
+BUILD FAILURE
+Alors qu'en activant un des profils, je n'ai plus de problème :
+
+$ mvn package -Ptarget-dev
+
+...
+BUILD SUCCESS
+
+
+Conclusion
+===========
+Maven fournit un certain nombre de plugins de base. Suivant le build lifecycle et le packaging utilisés, différents
+goals de ces plugins sont câblés par défaut aux différentes phases :
+
+http://maven.apache.org/ref/3.5.0/maven-core/default-bindings.html
+
+http://maven.apache.org/ref/3.5.0/maven-core/lifecycles.html
+
+Référez-vous à la documentation des plugins pour trouver le plugin qu'il vous faut et connaître son fonctionnement.
+
+Il est fortement recommandé de définir les versions des plugins utilisés.
+
+Comme pour les dépendances, il est possible de gérer les plugins de manière globale au projet via la section <pluginManagement>
+dans le POM parent.
+
+Vous pouvez câbler des nouveaux goals aux phases grâce aux sections <executions> des plugins.
+
+Dans le prochain chapitre, je vous montrerai comment utiliser les plugins pour parfaire le packaging de vos livrables.
+
+si on a rajouté <phase> <goal> etc est porque esta phase no forma parte de life default lifecycles
+es decir que no se ejecuta par default cuando hacemos maven package, por eso lo agregamos

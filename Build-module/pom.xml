@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>Build-module</artifactId>
+
+    <parent>
+        <artifactId>Build</artifactId>
+        <groupId>org.example</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <name>Build-module</name>
+    <!-- FIXME change it to the project's website -->
+    <url>http://www.example.com</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+
+        <!-- =============================================================== -->
+        <!-- Propriétés 2eme option pour activer cette configuration-->
+        <!-- =============================================================== -->
+        <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
+        <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.11</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- =========================================================================================================== -->
+            <!--                                       Définir la classe main du .jar                                        -->
+            <!-- =========================================================================================================== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <!-- Création du Manifest pour la définition de la classe Main -->
+                        <manifest>
+                            <mainClass>org.exemple.demo.App</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <!-- Je n'ai pas mis la configuration de la classe Main dans la section <pluginManagement> du POM parent
+            pour la simple et bonne raison que tous les modules n'ont pas de classe Main (ou du moins pas la même !).
+            -->
+            <!-- =========================================================================================================== -->
+            <!-- J'obtiens ainsi une description du goal et la liste des options de configuration qui lui sont applicables. -->
+            <!-- =========================================================================================================== -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId><!--  1ere solution pour actives ces options dans "configuration"-->
+                <artifactId>maven-compiler-plugin</artifactId><!-- plugin du goal compile  org.apache.maven.plugins:maven-compiler-plugin:compile-->
+            </plugin>
+
+
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.4.1</version>
+                <executions>
+                    <execution>
+                        <!-- je choisis un nom unique pour définir cette exécution -->
+                        <id>enforce-profile-target</id>
+                        <!-- je branche l'exécution à la phase "validate" -->
+                        <phase>validate</phase>
+                        <!-- cette exécution lancera le goal "enforce" -->
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <!-- La configuration du plugin propre à cette exécution -->
+                        <configuration>
+                            <rules>
+                                <requireActiveProfile>
+                                    <profiles>target-dev,target-test,target-prod</profiles>
+                                    <all>false</all>
+                                </requireActiveProfile>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <!-- =============================================================== -->
+    <!--                          Profils                                -->
+    <!-- =============================================================== -->
+    <profiles>
+        <!-- Profil pour l'environnement de développement -->
+        <profile>
+            <id>target-dev</id>
+
+        </profile>
+
+        <!-- Profil pour l'environnement de test -->
+        <profile>
+            <id>target-test</id>
+
+        </profile>
+
+        <!-- Profil pour l'environnement de production -->
+        <profile>
+            <id>target-prod</id>
+
+        </profile>
+    </profiles>
+</project>
