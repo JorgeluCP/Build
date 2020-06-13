@@ -264,3 +264,7 @@ chapitre précédent, je vais donc ajouter le plugin au build du profil target-p
 Voila ! Tout ce que j'avais besoin de faire de particulier pour la génération du WAR a été mis en place.
 
 Passons maintenant à un deuxième volet du projet : les batchs.
+
+
+en una aplicacion normal on utilise le dossier "ressources" si l'on veut filtrer qch
+en una aplicacion web on utilise websources que es webbapp  es en este dossier que podemos crear los profiles tb

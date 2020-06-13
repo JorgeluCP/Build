@@ -24,6 +24,9 @@
         <url>http://www.exemple.org</url>
     </organization>
 
+    <!-- =========================================================================================================== -->
+    <!--                                             Properties                                                      -->
+    <!-- =========================================================================================================== -->
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.7</maven.compiler.source>
@@ -39,6 +42,9 @@
         <buildTimestamp>${maven.build.timestamp}</buildTimestamp>
     </properties>
 
+    <!-- =========================================================================================================== -->
+    <!--                                             Dependencies                                                    -->
+    <!-- =========================================================================================================== -->
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -48,25 +54,67 @@
         </dependency>
     </dependencies>
 
+    <!-- =========================================================================================================== -->
+    <!--                                             Build                                                           -->
+    <!-- =========================================================================================================== -->
     <build>
         <finalName>ticket_webapp</finalName><!-- Au lieu de ticket_webapp-1.0-SNAPSHOT.war -->
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
-
+                <configuration>
+                    <webResources>
+                        <resource>
+                            <filtering>true</filtering>
+                            <directory>src/main/webapp</directory>
+                            <includes>
+                                <include>jsp/_include/header.jsp</include>
+                                <include>jsp/_include/footer.jsp</include>
+                                <include>jsp/about.jsp</include>
+                            </includes>
+                        </resource>
+                    </webResources>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
             </plugin>
+            <!--//////////////////////////////////////////////////////////////////////////////////////////////////////-->
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- je choisis un nom unique pour définir cette exécution -->
+                        <id>enforce-profile-target</id>
+                        <!-- je branche l'exécution à la phase "validate" -->
+                        <phase>validate</phase>
+                        <!-- cette exécution lancera le goal "enforce" -->
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <!-- La configuration du plugin propre à cette exécution -->
+                        <configuration>
+                            <rules>
+                                <requireActiveProfile>
+                                    <profiles>target-dev,target-test,target-prod</profiles>
+                                    <all>false</all>
+                                </requireActiveProfile>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 
-
-    <!-- =============================================================== -->
-    <!--                          Profils                                -->
-    <!-- =============================================================== -->
+    <!-- =========================================================================================================== -->
+    <!--                                             Profils                                                         -->
+    <!-- =========================================================================================================== -->
     <profiles>
         <!-- Profil pour l'environnement de développement -->
         <profile>
@@ -101,16 +149,10 @@
                                 <!-- La configuration du plugin propre à cette exécution -->
                                 <configuration>
                                     <rules>
-                                        <!--
-                                        <requireActiveProfile>
-                                            <profiles>target-dev,target-test,target-prod</profiles>
-                                            <all>false</all>
-                                        </requireActiveProfile>
-                                        -->
-                                        <!-- Le projet et son parent ne doivent pas être en SNAPSHOT -->
-                                        <requireReleaseVersion/>
-                                        <!-- Aucune dépendance ne doit être en SNAPSHOT -->
-                                        <requireReleaseDeps/>
+                                        <!-- This rule checks that the current project is not a snapshot.-->
+                                        <requireReleaseVersion/><!-- Le projet et son parent ne doivent pas être en SNAPSHOT No Snapshots allowed-->
+                                        <!-- This rule checks the dependencies and fails if any snapshots are found. -->
+                                        <requireReleaseDeps/><!-- Aucune dépendance ne doit être en SNAPSHOT No Snapshots allowed-->
                                     </rules>
                                 </configuration>
                             </execution>
