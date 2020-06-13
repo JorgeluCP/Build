@@ -22,6 +22,28 @@
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.0.2</version>
                 </plugin>
+
+                <!-- Plugin responsable de la génération du fichier WAR -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-war-plugin</artifactId>
+                    <version>3.2.3</version>
+
+                    <configuration>
+                        <webResources>
+                            <resource>
+                                <filtering>true</filtering>
+                                <directory>src/main/webapp</directory>
+                                <includes>
+                                    <include>jsp/_include/header.jsp</include>
+                                    <include>jsp/_include/footer.jsp</include>
+                                    <include>jsp/about.jsp</include>
+                                </includes>
+                            </resource>
+                        </webResources>
+                    </configuration>
+                </plugin>
+
                 <!-- Plugin pour affiché warning et Apis deprecated -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -32,16 +54,19 @@
                         <showWarnings>true</showWarnings>
                     </configuration>
                 </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>1.4.1</version>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
 
     <modules>
         <module>Build-module</module>
+        <module>ticket_webapp</module>
     </modules>
-
-
-
-
 
 </project>

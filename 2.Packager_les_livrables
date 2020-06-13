@@ -1,0 +1,266 @@
+========================================================================================================================
+                                        Packagez vos livrables
+========================================================================================================================
+
+Dans le chapitre précédent, nous avons vu comment personnaliser la construction de votre projet Maven avec les plugins.
+Abordons maintenant la génération des livrables de votre projet.
+
+Je vais vous montrer comment générer, par exemple, un WAR de votre application web ou un ZIP de vos batchs.
+
+Le but est d'obtenir un livrable contenant tout le nécessaire : votre application, bien sûr, mais aussi ses dépendances,
+les fichiers de configuration...
+
+Dans ce chapitre, je m'appuierai sur des exemples concrets portant sur le projet de gestion de tickets d'incidents vu
+dans les chapitres précédents.
+
+========================================================================================================================
+                               Générer un WAR de l'application web
+========================================================================================================================
+
+Dans ce premier volet, le but est de générer un fichier WAR pour le déploiement de l'application web.
+
+Je ne vais pas me contenter simplement de la génération de base du WAR, réalisée par le plugin maven-war-plugin.
+
+Je vais étoffer le processus de construction afin :
+
+d'ajouter automatiquement certaines informations du projet dans les JSP ;
+
+de m'assurer qu'aucune version SNAPSHOT ne soit envoyée en production.
+
+Filtrer les ressources de la webapp
+Afin d'ajouter automatiquement certaines informations du projet dans les JSP, je vais utiliser le même mécanisme que
+pour les fichiers de ressource classiques : le filtrage.
+
+Cependant, les JSP ne sont pas des ressources classiques, elles doivent être ajoutées au répertoire WEB-INF du WAR.
+Le plugin maven-war-plugin fait déjà cela et permet également de mettre en place le filtrage de ces web resources.
+
+Je commence donc par ajouter le plugin maven-war-plugin dans la section <pluginManagement> du POM parent :
+
+                       <project>
+                           ...
+                           <build>
+                               <pluginManagement>
+                                   <plugins>
+                                       <plugin>
+                                           <groupId>org.apache.maven.plugins</groupId>
+                                           <artifactId>maven-war-plugin</artifactId>
+                                           <version>3.1.0</version>
+                                       </plugin>
+                                       ...
+                                   </plugins>
+                               </pluginManagement>
+                           </build>
+                           ...
+                       </project>
+
+Dans l'arborescence standard d'un projet Maven, le répertoire contenant les web resources est src/main/webapp.
+
+Je configure ensuite le plugin maven-war-plugin dans le module ticket-webapp afin d'activer le filtrage des web resources
+suivantes :
+
+      * jsp/_include/header.jsp : fragment JSP contenant le header de toutes les pages HTML de l'application web.
+        Je vais y injecter le nom « public » de l'application.
+
+      * jsp/_include/footer.jsp : fragment JSP contenant le footer de toutes les pages HTML de l'application web.
+        Je vais y injecter notamment le nom de l'organisation et la version de l'application.
+
+      * jsp/about.jsp : page « À propos » où je vais injecter quelques informations sur le projet (version, date du build...)
+
+                      <project>
+                          ...
+                          <build>
+                              <plugins>
+                                  <plugin>
+                                      <groupId>org.apache.maven.plugins</groupId>
+                                      <artifactId>maven-war-plugin</artifactId>
+                                      <configuration>
+                                          <webResources>
+                                              <resource>
+                                                  <filtering>true</filtering>
+                                                  <directory>src/main/webapp</directory>
+                                                  <includes>
+                                                      <include>jsp/_include/header.jsp</include>
+                                                      <include>jsp/_include/footer.jsp</include>
+                                                      <include>jsp/about.jsp</include>
+                                                  </includes>
+                                              </resource>
+                                          </webResources>
+                                      </configuration>
+                                  </plugin>
+                                  ...
+                              </plugins>
+                          </build>
+                          ...
+                      </project>
+
+Je complète ensuite le POM du module ticket-webapp pour ajouter les propriétés utiles pour la suite :
+
+                      <project>
+                          ...
+                          <!-- =============================================================== -->
+                          <!-- Propriétés -->
+                          <!-- =============================================================== -->
+                          <properties>
+                              <!-- Le nom "public" de l'application -->
+                              <application.name>TicketTac</application.name>
+                              <!-- Le format à utiliser pour afficher la date du build -->
+                              <maven.build.timestamp.format>dd/MM/yyyy</maven.build.timestamp.format>
+                              <!-- Propriété servant à contourner le bug du non remplacement
+                                   de la propriété maven.build.timestamp lors du filtrage des ressources -->
+                              <buildTimestamp>${maven.build.timestamp}</buildTimestamp>
+                          </properties>
+                          ...
+                      </project>
+
+Comme je vous l'indiquais dans la première partie de ce cours, il est intéressant d'ajouter des informations
+complémentaires dans le POM, comme le nom de l'organisation, l'URL de son site web... Nous allons les utiliser ici !
+
+Il ne me reste plus qu'à utiliser les propriétés dans les JSP afin que leurs valeurs soient injectées lors du filtrage
+par le plugin maven-war-plugin :
+
+   * jsp/_include/header.jsp :
+
+     <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+
+     <nav class="navbar navbar-inverse navbar-fixed-top">
+         <div class="container">
+             <div class="navbar-header">
+                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                     <span class="sr-only">Toggle navigation</span>
+                     <span class="icon-bar"></span>
+                     <span class="icon-bar"></span>
+                     <span class="icon-bar"></span>
+                 </button>
+                 <a class="navbar-brand" href="#">${application.name}</a>
+             </div>
+             <div id="navbar" class="collapse navbar-collapse">
+                 <ul class="nav navbar-nav">
+                     <li class="active"><a href="..">Accueil</a></li>
+                     <li><a href="../jsp/about.jsp">A propos</a></li>
+                 </ul>
+             </div><!--/.nav-collapse -->
+         </div>
+     </nav>
+
+   * jsp/_include/footer.jsp :
+
+        <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+
+        <footer class="footer">
+            <div class="container">
+                <p>
+                    ${application.name} - version ${project.version}
+                    &copy; <a href="${organization.url}">${organization.name}</a>
+                </p>
+            </div>
+        </footer>
+
+        <!-- Bootstrap -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+                integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+                crossorigin="anonymous"></script>
+
+    * jsp/about.jsp :
+
+         <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+
+         <!DOCTYPE html>
+         <html lang="fr">
+
+         <head>
+             <meta charset="utf-8" />
+             <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+             <meta name="viewport" content="width=device-width, initial-scale=1" />
+             <title>${application.name} - A propos</title>
+             <!-- Bootstrap -->
+             <link rel="stylesheet"
+                   href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+                   integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+                   crossorigin="anonymous" />
+             <link rel="stylesheet"
+                   href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+                   integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp"
+                   crossorigin="anonymous" />
+             <link rel="stylesheet" href="../style/custom.css" />
+         </head>
+
+
+         <body>
+
+         <%@ include file="_include/header.jsp" %>
+
+         <div class="container">
+             <ul>
+                 <li>Application : ${application.name}</li>
+                 <li>Version : ${project.version}</li>
+                 <li>Date du build : ${maven.build.timestamp}</li>
+             </ul>
+         </div>
+
+         <%@ include file="_include/footer.jsp" %>
+         </body>
+         </html>
+
+
+Voici ce que donne la page après la construction du projet :
+
+ Un site avec les infos suivantes
+
+                                 * Application: TicketTac
+                                 * Version : 1.0-SNAPSHOT
+                                 * Date du build : 25/07/2017
+
+========================================================================================================================
+                     Les vérifications supplémentaires pour la cible « production »
+========================================================================================================================
+
+Afin de m'assurer qu'aucune version SNAPSHOT ne soit envoyée en production, je vais encore une fois utiliser le plugin
+maven-enforcer-plugin.
+
+Cependant, comme cette vérification concerne uniquement les constructions ayant pour cible la production, je vais ajouter
+l'exécution de ce plugin dans un profil dédié à la cible production. Si je reprends les profils que j'ai créés dans le
+chapitre précédent, je vais donc ajouter le plugin au build du profil target-prod :
+
+
+          <project>
+              ...
+              <!-- =============================================================== -->
+              <!-- Profils -->
+              <!-- =============================================================== -->
+              <profiles>
+                  ...
+                  <profile>
+                      <id>target-prod</id>
+                      <build>
+                          <plugins>
+                              <plugin>
+                                  <groupId>org.apache.maven.plugins</groupId>
+                                  <artifactId>maven-enforcer-plugin</artifactId>
+                                  <executions>
+                                      <execution>
+                                          <id>enforce-target-prod-no-snapshot</id>
+                                          <phase>validate</phase>
+                                          <goals>
+                                              <goal>enforce</goal>
+                                          </goals>
+                                          <configuration>
+                                              <rules>
+                                                  <!-- Le projet et son parent ne doivent pas être en SNAPSHOT -->
+                                                  <requireReleaseVersion />
+                                                  <!-- Aucune dépendance ne doit être en SNAPSHOT -->
+                                                  <requireReleaseDeps />
+                                              </rules>
+                                          </configuration>
+                                      </execution>
+                                  </executions>
+                              </plugin>
+                          </plugins>
+                      </build>
+                  </profile>
+              </profiles>
+              ...
+          </project>
+
+Voila ! Tout ce que j'avais besoin de faire de particulier pour la génération du WAR a été mis en place.
+
+Passons maintenant à un deuxième volet du projet : les batchs.

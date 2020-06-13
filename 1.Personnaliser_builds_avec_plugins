@@ -1379,3 +1379,9 @@ Dans le prochain chapitre, je vous montrerai comment utiliser les plugins pour p
 
 si on a rajouté <phase> <goal> etc est porque esta phase no forma parte de life default lifecycles
 es decir que no se ejecuta par default cuando hacemos maven package, por eso lo agregamos
+
+*************************************************************************************************
+control + space  pour afficher les valeurs de version disponibles d'une balise
+
+control + n pour avoir chercher une classe/ element par son nom (RACCOURCI)
+*************************************************************************************************

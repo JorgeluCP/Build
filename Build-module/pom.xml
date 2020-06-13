@@ -65,59 +65,7 @@
                 <artifactId>maven-compiler-plugin</artifactId><!-- plugin du goal compile  org.apache.maven.plugins:maven-compiler-plugin:compile-->
             </plugin>
 
-
-
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>1.4.1</version>
-                <executions>
-                    <execution>
-                        <!-- je choisis un nom unique pour définir cette exécution -->
-                        <id>enforce-profile-target</id>
-                        <!-- je branche l'exécution à la phase "validate" -->
-                        <phase>validate</phase>
-                        <!-- cette exécution lancera le goal "enforce" -->
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <!-- La configuration du plugin propre à cette exécution -->
-                        <configuration>
-                            <rules>
-                                <requireActiveProfile>
-                                    <profiles>target-dev,target-test,target-prod</profiles>
-                                    <all>false</all>
-                                </requireActiveProfile>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
         </plugins>
     </build>
 
-    <!-- =============================================================== -->
-    <!--                          Profils                                -->
-    <!-- =============================================================== -->
-    <profiles>
-        <!-- Profil pour l'environnement de développement -->
-        <profile>
-            <id>target-dev</id>
-
-        </profile>
-
-        <!-- Profil pour l'environnement de test -->
-        <profile>
-            <id>target-test</id>
-
-        </profile>
-
-        <!-- Profil pour l'environnement de production -->
-        <profile>
-            <id>target-prod</id>
-
-        </profile>
-    </profiles>
 </project>
