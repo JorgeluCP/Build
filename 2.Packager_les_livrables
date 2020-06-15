@@ -271,7 +271,9 @@ en una aplicacion web on utilise websources que es webbapp  es en este dossier q
 
 mvn package -Ptarget-dev
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 Cuando hay una dependencia entre 2 modulos, la couche superior puede acceder a los elementos de la inferior es decir
 ticket-webapp tendra por ejemplo en su .pom una dependencia a Build-module. ticket-wabapp podra entonces utilizar
 los elementos de Build-module y si montamos un war de ticket-webapp este tendra en WEB-INF --> lib el .jar de su dependencia
 que es Build-module
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
