@@ -1,4 +1,4 @@
-<%--
+<%@ page import="org.example.Hola" %><%--
   Created by IntelliJ IDEA.
   User: JORGE
   Date: 6/13/2020
@@ -41,5 +41,9 @@
 </div>
 
 <%@ include file="_include/footer.jsp" %>
+<%!String oye=Hola.hey;
+%>
+<p>Hey tu : <%=oye%></p>
+
 </body>
 </html>

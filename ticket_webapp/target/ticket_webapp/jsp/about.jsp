@@ -1,4 +1,4 @@
-<%--
+<%@ page import="org.example.Hola" %><%--
   Created by IntelliJ IDEA.
   User: JORGE
   Date: 6/13/2020
@@ -36,10 +36,14 @@
     <ul>
         <li>Application : TicketTac</li>
         <li>Version : 1.0-SNAPSHOT</li>
-        <li>Date du build : 13/06/2020</li>
+        <li>Date du build : ${maven.build.timestamp}</li>
     </ul>
 </div>
 
 <%@ include file="_include/footer.jsp" %>
+<%!String oye=Hola.hey;
+%>
+<p>Hey tu : <%=oye%></p>
+
 </body>
 </html>
