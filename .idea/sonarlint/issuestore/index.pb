@@ -27,3 +27,15 @@ E
 pom.xml,4\4\442292b8a7efeabbe4cc176709b833b1792140ec
 _
 /Build-module/src/main/java/org/example/App.java,c\f\cfc43e0f79c0aefc0854798753f9e5961ccee054
+_
+/ticket_batch/src/main/java/org/example/App.java,c\0\c0e1313d2ceb8c29aa48b15b03154aed9bc1727e
+\
+,ticket_batch/src/data/conf/config.properties,0\9\09d9283f215f38a27a1c1e7ce0d5ae71679916a3
+Z
+*ticket_batch/src/data/conf/db-x.properties,d\5\d5faff8e7e506245ca90084f2d56c2b27fb3e8e9
+X
+(ticket_batch/src/data/scripts/batch-X.sh,5\6\569a9fbb0c7cdb062f8b2e6ed0b35352b1dfb214
+D
+ticket_batch/pom.xml,d\1\d1a71e9d3ee47ab20cc5c4197e13603b9f884bf9
+\
+,ticket_batch/src/assembly/archive-deploy.xml,c\5\c52c6607daeb7656c0fd8655a43356b663c7e7ca

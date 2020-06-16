@@ -14,8 +14,8 @@
     <!-- lib : dépendances + JAR ticket-batch -->
     <dependencySets>
         <dependencySet>
-            <outputDirectory>lib</outputDirectory>
-            <scope>runtime</scope>
+            <outputDirectory>lib</outputDirectory><!-- los outputdirectory sont les noms des fichiers que l'on vera dans le zip-->
+            <scope>runtime</scope>                <!-- et pas dans intellij-->
         </dependencySet>
     </dependencySets>
 

@@ -48,24 +48,22 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.example.demo.batch.App</mainClass>
+                            <mainClass>org.example.App</mainClass>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix></classpathPrefix>
                         </manifest>
                     </archive>
                 </configuration>
             </plugin>
+
             <!-- Assemblage -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.3.0</version>
                 <configuration>
-                    <desciptorRefs>
-                        <descriptors>
-                            <descriptor>src/assembly/archive-deploy.xml</descriptor>
-                        </descriptors>
-                    </desciptorRefs>
+                    <descriptors>
+                        <descriptor>src/assembly/archive-deploy.xml</descriptor>
+                    </descriptors>
                 </configuration>
                 <executions>
                     <execution>
@@ -78,6 +76,5 @@
                 </executions>
             </plugin>
         </plugins>
-
     </build>
 </project>

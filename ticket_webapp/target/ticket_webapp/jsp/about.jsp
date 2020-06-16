@@ -1,4 +1,4 @@
-<%@ page import="org.example.Hola" %><%--
+<%@ page import="org.example.MyClass" %><%--
   Created by IntelliJ IDEA.
   User: JORGE
   Date: 6/13/2020
@@ -41,9 +41,8 @@
 </div>
 
 <%@ include file="_include/footer.jsp" %>
-<%!String oye=Hola.hey;
-%>
-<p>Hey tu : <%=oye%></p>
+<%!String var = MyClass.MY_CONST;%>
+<p>Hey tu : <%=var%></p>
 
 </body>
 </html>

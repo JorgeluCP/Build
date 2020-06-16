@@ -315,3 +315,112 @@ dependencias después de eso (si su IDE no admite la resolución de dependencias
 deploy
 ======
 Copia el paquete en un repositorio remoto para que esté disponible para otros desarrolladores.
+
+
+
+Introduction
+============
+
+The Assembly Plugin for Maven enables developers to combine project output into a single distributable archive that also contains dependencies, modules, site documentation, and other files.
+
+Your project can easily build distribution "assemblies" using one of the prefabricated assembly descriptors. These descriptors handle many common operations, such as packaging a project's artifact along with generated documentation into a single zip archive. Alternatively, your project can provide its own descriptor and assume a much higher level of control over how dependencies, modules, file-sets, and individual files are packaged in the assembly.
+
+Currently it can create distributions in the following formats:
+
+       .zip
+       .tar
+       .tar.gz (or tgz)
+       .tar.bz2 (or tbz2)
+       .tar.snappy
+       .tar.xz (or txz)
+       .jar
+       .dir
+       .war
+       .and any other format that the ArchiveManager has been configured for
+
+If your project wants to package your artifact in an uber-jar, the assembly plugin provides only basic support.
+For more control, use the Maven Shade Plugin.
+
+To use the Assembly Plugin in Maven, you simply need to:
+
+       .choose or write the assembly descriptor to use,
+       .configure the Assembly Plugin in your project's pom.xml, and
+       .run "mvn assembly:single" on your project.
+
+========================================================================================================================
+                  https://maven.apache.org/plugins/maven-assembly-plugin/assembly.html
+========================================================================================================================
+
+What is an Assembly?
+====================
+
+An "assembly" is a group of files, directories, and dependencies that are assembled into an archive format and distributed.
+For example, assume that a Maven project defines a single JAR artifact that contains both a console application and a
+Swing application. Such a project could define two "assemblies" that bundle the application with a different set of
+supporting scripts and dependency sets. One assembly would be the assembly for the console application, and the other
+assembly could be a Swing application bundled with a slightly different set of dependencies.
+
+The Assembly Plugin provides a descriptor format which allows you to define an arbitrary assembly of files and directories
+from a project. For example, if your Maven project contains the directory "src/main/bin", you can instruct the
+Assembly Plugin to copy the contents of this directory to the "bin" directory of an assembly and to change the permissions
+of the files in the "bin" directory to UNIX mode 755. The parameters for configuring this behavior are supplied to the
+Assembly Plugin by way of the assembly descriptor.
+
+
+Goals
+=====
+
+The main goal in the assembly plugin is the single goal. It is used to create all assemblies.
+
+For more information about the goals that are available in the Assembly Plugin, see the plugin documentation page.
+
+
+Dependency Scope
+Dependency scope is used to limit the transitivity of a dependency, and also to affect the classpath used for various build tasks.
+
+=============================
+There are 6 scopes available:
+=============================
+
+compile
+=======
+This is the default scope, used if none is specified. Compile dependencies are available in all classpaths of a project.
+Furthermore, those dependencies are propagated to dependent projects.
+
+provided
+========
+
+This is much like compile, but indicates you expect the JDK or a container to provide the dependency at runtime.
+For example, when building a web application for the Java Enterprise Edition, you would set the dependency on the
+Servlet API and related Java EE APIs to scope provided because the web container provides those classes. This scope
+is only available on the compilation and test classpath, and is not transitive.
+
+runtime
+=======
+
+This scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime
+and test classpaths, but not the compile classpath.
+
+test
+====
+
+This scope indicates that the dependency is not required for normal use of the application, and is only available
+for the test compilation and execution phases. This scope is not transitive.
+
+system
+======
+
+This scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact
+is always available and is not looked up in a repository.
+
+import
+======
+
+This scope is only supported on a dependency of type pom in the <dependencyManagement> section. It indicates the
+dependency to be replaced with the effective list of dependencies in the specified POM's <dependencyManagement> section.
+Since they are replaced, dependencies with a scope of import do not actually participate in limiting the transitivity
+of a dependency.
+
+
+
+                                              mvn package -Ptarget-dev
