@@ -1,0 +1,317 @@
+========================================================================================================================
+                              Générer une archive pour votre jeu de batchs
+========================================================================================================================
+
+L'objectif est de générer une archive (un fichier TAR.GZ et un fichier ZIP) pour le jeu de batchs de l'application de
+gestion de tickets.
+
+Cette archive contiendra :
+=========================
+
+      . le JAR du module ticket-batch
+      . les JAR de toutes ses dépendances
+      . les fichiers de configuration (modifiables facilement par l'administrateur)
+      . les scripts shell de lancement de chaque batch
+
+Voici comment je vais organiser l'archive :
+==========================================
+
+      .le répertoire bin contiendra les scripts shell de lancement des batchs
+      .le répertoire conf contiendra les fichiers de configuration
+      .le répertoire lib contiendra le JAR du module ticket-batch ainsi que les JAR des dépendances
+
+                                         🗄 archive
+                                         ├── 🗁 bin
+                                         │   ├── 🗎 batch-X.sh
+                                         │   ├── 🗎 batch-Y.sh
+                                         │   └── ...
+                                         ├── 🗁 conf
+                                         │   ├── 🗎 config.properties
+                                         │   ├── 🗎 db-X.properties
+                                         │   └── ...
+                                         └── 🗁 lib
+                                             ├── 🗎 ticket-batch-*.jar
+                                             ├── 🗎 ticket-business-*.jar
+                                             ├── 🗎 ticket-model-*.jar
+                                             ├── 🗎 commons-lang3-*.jar
+                                             └── ...
+
+Préparer le terrain
+===================
+
+Pour commencer, je vais créer l'arborescence suivante pour héberger les fichiers à inclure dans l'archive :
+
+                                         🗁 src/data
+                                         ├── 🗁 scripts
+                                         │   ├── 🗎 batch-X.sh
+                                         │   ├── 🗎 batch-Y.sh
+                                         │   └── ...
+                                         └── 🗁 conf
+                                             ├── 🗎 config.properties  (conf. de l'application)
+                                             ├── 🗎 db-X.properties    (conf. de la base de données)
+                                             └── ...
+
+Je ne vous détaille pas le contenu des ces fichiers, cela ne vous sera pas utile ici.
+
+========================================================================================================================
+                                       Configuration du JAR des batchs
+========================================================================================================================
+
+Étant donné que je vais fournir les JAR des dépendances à côté du JAR du module ticket-batch, je vais ajouter le
+classpath au manifest de ce JAR. Ainsi, toutes les classes seront trouvées automatiquement par la JVM lors de
+l'exécution du JAR.
+
+Pour cela, je complète la configuration du plugin maven-jar-plugin :
+
+                              <project>
+                                  ...
+                                  <build>
+                                      <plugins>
+                                          <!-- Création du JAR -->
+                                          <plugin>
+                                              <groupId>org.apache.maven.plugins</groupId>
+                                              <artifactId>maven-jar-plugin</artifactId>
+                                              <configuration>
+                                                  <archive>
+                                                      <manifest>
+                                                          <mainClass>org.exemple.demo.batch.App</mainClass>
+                                                          <addClasspath>true</addClasspath>
+                                                          <classpathPrefix></classpathPrefix>
+                                                      </manifest>
+                                                  </archive>
+                                              </configuration>
+                                          </plugin>
+                                          ...
+                                      </plugins>
+                                  </build>
+                                  ...
+                              </project>
+
+========================================================================================================================
+                                        Assembler le tout dans une archive
+========================================================================================================================
+
+Afin de générer les fichiers d'archive, je vais utiliser le plugin maven-assembly-plugin.
+
+Définition de l'assemblage
+==========================
+
+La définition des assemblages se fait grâce à des fichiers XML dans le répertoire src/assembly.
+Je crée donc un nouveau fichier src/assembly/archive-deploy.xml :
+
+
+                  <assembly xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                            xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
+                            xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
+
+                      <!-- Identifiant de l'assemblage -->
+                      <id>archive-deploy</id>
+
+                      <!-- Les formats d'archive à générer -->
+                      <formats>
+                          <format>tar.gz</format>
+                          <format>zip</format>
+                      </formats>
+
+                      <!-- lib : dépendances + JAR ticket-batch -->
+                      <dependencySets>
+                          <dependencySet>
+                              <outputDirectory>lib</outputDirectory>
+                              <scope>runtime</scope>
+                          </dependencySet>
+                      </dependencySets>
+
+                      <fileSets>
+                          <!-- Scripts shell de lancement -->
+                          <fileSet>
+                              <directory>src/data/scripts</directory>
+                              <outputDirectory>bin</outputDirectory>
+                              <!-- Droits UNIX sur les fichiers (-rwx-rx-rx) -->
+                              <fileMode>0755</fileMode>
+                          </fileSet>
+
+                          <!-- Fichiers de configuration -->
+                          <fileSet>
+                              <directory>src/data/conf</directory>
+                              <outputDirectory>conf</outputDirectory>
+                          </fileSet>
+                      </fileSets>
+                  </assembly>
+
+========================================================================================================================
+                Voici quelques explications sur les différents éléments contenus dans ce fichier :
+========================================================================================================================
+
+      .id : l'identifiant de l'assemblage. Maven va se servir de cet identifiant dans le nom des fichiers générés :
+      <project.finalName>-<id>.<format>. Ce qui donnerait par exemple : ticket-batch-1.0-SNAPSHOT-archive-deploy.tar.gz.
+
+      .formats : les formats de fichier à générer. Ici un fichier tar.gz et un fichier zip.
+
+      .dependencySets : ajout d'un ensemble de dépendances. Ici, j'ajoute toutes les dépendances de runtime
+       (scope runtime et compile) du projet dans le répertoire de destination lib.
+
+      .fileSets : ajout d'un ensemble de fichiers. Ici, j'ajoute deux ensembles de fichiers :
+
+                .les scripts de lancement des batchs contenus dans le répertoire src/data/scripts, dans le répertoire
+                  de destination bin. J'y positionne les droits Unix, notamment celui d'exécution :
+
+                                             <fileMode>0755</fileMode> (-rwxr-x-rx).
+
+                .les fichiers de configuration contenus dans le répertoire src/data/conf, dans le répertoire de destination conf.
+
+========================================================================================================================
+                                Câbler la génération des fichiers d'archive
+========================================================================================================================
+
+La dernière étape consiste à câbler la génération des fichiers d'archive à la phase package :
+
+                            <project>
+                                ...
+                                <build>
+                                    <plugins>
+                                        ...
+                                        <!-- Création des archives de déploiement -->
+                                        <plugin>
+                                            <groupId>org.apache.maven.plugins</groupId>
+                                            <artifactId>maven-assembly-plugin</artifactId>
+                                            <configuration>
+                                                <descriptors>
+                                                    <descriptor>src/assembly/archive-deploy.xml</descriptor>
+                                                </descriptors>
+                                            </configuration>
+                                            <executions>
+                                                <execution>
+                                                    <id>assembly-archive-deploy</id>
+                                                    <phase>package</phase>
+                                                    <goals>
+                                                        <goal>single</goal>
+                                                    </goals>
+                                                </execution>
+                                            </executions>
+                                        </plugin>
+                                    </plugins>
+                                </build>
+                                ...
+                            </project>
+
+Et voilà, maintenant, si vous lancez la commande suivante, les fichiers archives de l'assemblage archive-deploy seront
+générés automatiquement dans le répertoire target :
+
+                                                  mvn package
+
+Si vous voulez aller plus loin dans les assemblages, vous pouvez consulter la documentation.
+
+========================================================================================================================
+                                                   Conclusion
+========================================================================================================================
+
+Nous avons vu deux exemples de personnalisation de la construction et de la génération de livrables de projet Maven.
+
+Je vous invite à tester cela et faire vos propres expériementations.
+
+Dans le prochain chapitre, vous verrons qu'il est possible d'utiliser Maven pour générer un site web pour votre projet.
+Ce site va donner des informations générales sur le projet mais aussi des informations sur ses différents modules, la
+documentation, des rapports sur l'exécution des tests.
+
+
+========================================================================================================================
+validate
+=========
+Valida si el proyecto es correcto y toda la información requerida está disponible para la compilación.
+
+initialize
+==========
+Inicializa el entorno de compilación, por ejemplo, establece propiedades o crea directorios.
+
+generate-sources
+================
+Genera código fuente para ser procesado en la fase de 'compilación'.
+
+process-sources
+================
+Procesa el código fuente en caso de que sea necesario aplicar algún filtro.
+
+generate-resources
+=================
+Genera recursos para ser incluidos en el artefacto.
+
+process-resources
+================
+Procesa y copia recursos en el directorio de salida ( ${basedir}/target/classes ).
+
+compile
+=======
+Compila el código fuente del proyecto en el directorio de origen ( ${basedir}/src/main/[java|groovy|...] ) en el
+directorio de salida ( ${basedir}/target/classes ).
+
+process-classes
+===============
+Procesa los archivos .class generados en la fase de compile , por ejemplo, para realizar mejoras de código de bytes.
+
+generate-test-sources
+=====================
+Genera código fuente de prueba para ser procesado en la fase de test-compile .
+
+process-test-sources
+====================
+Procesa el código fuente de la prueba en caso de que sea necesario aplicar algún filtro.
+
+generate-test-resources
+=======================
+Genera recursos para pruebas.
+
+process-test-resources
+======================
+Procesa y copia recursos de prueba en el directorio de recursos ( ${basedir}/src/main/resources ) en el directorio de
+salida de prueba ( ${basedir}/target/test-classes ).
+
+test-compile
+============
+Compila el código fuente en el directorio de origen de prueba ('$ {basedir} / src / test / [java | groovy | ...]') en el
+directorio de salida de prueba ( ${basedir}/target/test-classes ).
+
+process-test-classes
+====================
+Los procesos prueban los archivos .class generados en la fase de test-compile , por ejemplo, para realizar mejoras de
+código de bytes (Maven 2.0.5 y superior).
+
+test
+====
+Ejecuta pruebas utilizando algún marco de prueba adecuado. Nota: estos casos de prueba no se consideran para el
+empaquetado y la implementación.
+
+prepare-package
+===============
+Realiza los cambios finales y las validaciones antes de que finalmente se cree el paquete.
+
+package
+=======
+Empaqueta el código compilado y probado con éxito en algún formato distribuible como JAR, WAR, EAR en el directorio de
+destino ( ${basedir}/target ).
+
+pre-integration-test
+====================
+Realiza acciones antes de que se ejecuten las pruebas de integración si requieren aplicar algunos cambios en el entorno
+para la aplicación.
+
+integration-test
+================
+Procesa y posiblemente implementa la aplicación en un entorno donde se pueden ejecutar pruebas de integración.
+
+post-integration-test
+=====================
+Realiza acciones después de las pruebas de integración, como la limpieza del entorno creado en la fase de
+pre-integration-test .
+
+verify
+======
+Comprueba si un paquete es válido y cumple con los criterios de calidad requeridos.
+
+install
+=======
+Instala el artefacto en el repositorio local. Cualquier otro proyecto local puede usar este artefacto como una de sus
+dependencias después de eso (si su IDE no admite la resolución de dependencias del área de trabajo de todos modos).
+
+deploy
+======
+Copia el paquete en un repositorio remoto para que esté disponible para otros desarrolladores.

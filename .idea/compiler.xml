@@ -6,11 +6,14 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="ticket_webapp" />
+        <module name="ticket_batch" />
         <module name="Build-module" />
+        <module name="ticket_webapp" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="ticket_batch" target="1.7" />
+      <module name="ticket_batchp" target="1.5" />
       <module name="untitled" target="1.5" />
       <module name="untitled1" target="1.8" />
       <module name="untitled2" target="1.5" />

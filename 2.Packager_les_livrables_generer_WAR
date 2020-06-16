@@ -277,3 +277,6 @@ ticket-webapp tendra por ejemplo en su .pom una dependencia a Build-module. tick
 los elementos de Build-module y si montamos un war de ticket-webapp este tendra en WEB-INF --> lib el .jar de su dependencia
 que es Build-module
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+

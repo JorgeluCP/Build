@@ -40,11 +40,17 @@
                         <showWarnings>true</showWarnings>
                     </configuration>
                 </plugin>
-
+                <!-- -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-enforcer-plugin</artifactId>
                     <version>1.4.1</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.3.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -53,6 +59,7 @@
     <modules>
         <module>Build-module</module>
         <module>ticket_webapp</module>
+        <module>ticket_batch</module>
     </modules>
 
 
