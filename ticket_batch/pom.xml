@@ -53,6 +53,7 @@
                             <classpathPrefix></classpathPrefix>
                         </manifest>
                     </archive>
+                 <!--<outputDirectory>${project.basedir}/lib</outputDirectory>-->
                 </configuration>
             </plugin>
 

@@ -24,7 +24,7 @@
         <fileSet>
             <directory>src/data/scripts</directory>
             <outputDirectory>bin</outputDirectory>
-            <!-- Droits UNIX sur les fichiers (-rwx-rx-rx) -->
+            <!-- Droits UNIX sur les fichiers (-rwx-rx-rx) pour que les fichier soient exécutables-->
             <fileMode>0755</fileMode>
         </fileSet>
 
